@@ -1,0 +1,109 @@
+@author: gizemilaydaozturk
+"""
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+import pingouin as pg
+from pingouin import pairwise_corr
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+from sklearn.svm import SVC
+from sklearn.datasets import load_iris
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score, GridSearchCV
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.datasets import make_classification
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
+#1. a) Load data into dataframe.
+#I am naming my dataframe as df
+df = pd.read_csv('/Users/gizemilaydaozturk/Downloads/oasis_longitudinal.csv')
+
+#1. b) Check for missing values in the dataset
+df.dropna(inplace=True)
+
+#2. a) Variable relationships
+sns.pairplot(df, hue='Group')
+plt.show()
+
+#Looks like CDR and MMSE have the strongest correlations
+features = ['EDUC', 'SES', 'MMSE', 'CDR', 'eTIV', 'nWBV', 'ASF']
+
+#2. b) Correlation analysis
+#Step one, make a dataset for the pairwise correlation called pairwise
+pairwise= pg.pairwise_corr(df, columns = features)
+
+# Heatmap for correlation analysis
+##sns.heatmap(pairwise, annot=True)
+##plt.show()
+
+# Feature Choices
+selected_features = ['CDR', 'MMSE']
+X = df[selected_features]
+y = df['Group']
+
+# Data Splitting
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+#logistic regression
+clf = LogisticRegression(random_state=0).fit(X, y)
+score = clf.score(X_test, y_test)
+print(score)
+
+#confusion matrix logistic regression
+y_pred = clf.predict(X_test)
+cm = confusion_matrix(y_test, y_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+disp.plot()
+
+#crossvalidation scores
+cv_scores = cross_val_score(clf, X, y, cv=5)
+print("Cross-Validation Scores:", cv_scores)
+print("Mean CV Score:", np.mean(cv_scores))
+
+param_grid = {'C': [0.1, 1, 10], 'penalty': ['l1', 'l2']}
+grid_search = GridSearchCV(clf, param_grid, cv=5)
+grid_search.fit(X_train, y_train)
+best_clf = grid_search.best_estimator_
+score = best_clf.predict(X_test, y_test)
+print("Grid scores:", score)
+
+
+
+#decision tree
+clf = DecisionTreeClassifier(random_state=0)
+clf.fit(X_train, y_train)
+score = clf.score(X_test, y_test)
+print(score)
+
+#confusion matrix
+y_pred = clf.predict(X_test)
+cm = confusion_matrix(y_test, y_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+disp.plot()
+
+#crossvalidation scores
+cv_scores = cross_val_score(clf, X, y, cv=5)
+print("Cross-Validation Scores:", cv_scores)
+print("Mean CV Score:", np.mean(cv_scores))
+
+
+#knearest neighbors
+neigh = KNeighborsClassifier(n_neighbors=2)
+neigh.fit(X_train, y_train)
+score = neigh.score(X_test, y_test)
+print(score)
+
+#confusion matrix knearest neighbor
+y_pred = neigh.predict(X_test)
+cm = confusion_matrix(y_test, y_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+disp.plot()
+
+#crossvalidation scores
+cv_scores = cross_val_score(neigh, X, y, cv=5)
+print("Cross-Validation Scores:", cv_scores)
+print("Mean CV Score:", np.mean(cv_scores))
