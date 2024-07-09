@@ -1,0 +1,200 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Apr 24 18:41:37 2024
+
+@author: gizemilaydaozturk
+"""
+import random
+import matplotlib.pyplot as plt
+#%%
+# Function to simulate one generation of mating with advantageous trait
+def simulate_generation_advantage(population, prob_greenthumb):
+    next_generation = []
+    for _ in range(len(population) // 2):
+        parent1 = random.choice(population)
+        parent2 = random.choice(population)
+        if 'G' in parent1 or 'G' in parent2:  # If at least one parent has the greenthumb trait
+            if random.random() < prob_greenthumb:  # Both parents have 2 children
+                next_generation.extend([parent1, parent2])
+        else:  # If neither parent has the greenthumb trait
+            if random.random() < prob_greenthumb:  # Both parents have 1 child
+                next_generation.extend([parent1])
+
+    return next_generation
+
+# Initial population parameters
+initial_population_size = 1000
+prob_greenthumb = 0.1  # 10% of the population expresses greenthumb
+population = ['GG' if random.random() < prob_greenthumb else 'Gg' for _ in range(initial_population_size)]
+
+# Simulation with advantageous trait over 100 generations
+generations = 100
+expression_distribution = {'GG': 0, 'Gg': 0}
+
+for i in range(generations):
+    population = simulate_generation_advantage(population, prob_greenthumb)
+    expression_distribution['GG'] += population.count('GG')
+    expression_distribution['Gg'] += population.count('Gg')
+
+# Calculate the percentage distribution
+total_population = sum(expression_distribution.values())
+expression_distribution_percentage = {genotype: (count / total_population) * 100 for genotype, count in expression_distribution.items()}
+
+# Plotting the distribution
+labels = expression_distribution_percentage.keys()
+sizes = expression_distribution_percentage.values()
+
+plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
+plt.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+plt.title('Distribution of Greenthumb Trait after 100 Generations')
+plt.show()
+
+    
+#%%
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Function to simulate the spread of the disease
+def simulate_spread(initial_infected, transmission_prob, daily_handshakes_mean, daily_handshakes_std):
+    population = 1000
+    infected = initial_infected
+    days = 0
+    while infected < population:
+        daily_handshakes = np.random.normal(daily_handshakes_mean, daily_handshakes_std)
+        new_infections = infected * daily_handshakes * transmission_prob / population
+        infected += new_infections
+        days += 1
+    return days
+
+# Parameters
+initial_infected = 0.05 * 1000  # 5% of the population
+transmission_prob = 0.05  # 5% transmission probability per handshake
+daily_handshakes_mean = 5
+daily_handshakes_std = 3
+
+# Simulate spread
+num_simulations = 1000
+simulation_results = [simulate_spread(initial_infected, transmission_prob, daily_handshakes_mean, daily_handshakes_std) for _ in range(num_simulations)]
+
+# Calculate mean and standard deviation
+mean_days = np.mean(simulation_results)
+std_days = np.std(simulation_results)
+
+print("Mean days for entire population to become infected:", mean_days)
+print("Standard deviation of days for entire population to become infected:", std_days)
+
+
+#%%
+# Function to perform parameter sensitivity analysis
+def sensitivity_analysis(infection_rates, daily_handshakes_values):
+    results = np.zeros((len(infection_rates), len(daily_handshakes_values)))
+    for i, rate in enumerate(infection_rates):
+        for j, handshake_mean in enumerate(daily_handshakes_values):
+            results[i, j] = simulate_spread(initial_infected, rate, handshake_mean, daily_handshakes_std)
+    return results
+
+# Parameters for sensitivity analysis
+infection_rates = [0.05, 0.1, 0.2, 0.5]
+daily_handshakes_values = [5, 10, 20, 50, 100]
+
+# Perform sensitivity analysis
+sensitivity_results = sensitivity_analysis(infection_rates, daily_handshakes_values)
+
+# Plotting
+plt.figure(figsize=(10, 6))
+for i, rate in enumerate(infection_rates):
+    plt.plot(daily_handshakes_values, sensitivity_results[i], label=f"Infection Rate = {rate}")
+plt.xlabel('Daily Handshakes Mean')
+plt.ylabel('Days for Entire Population to be Infected')
+plt.title('Parameter Sensitivity Analysis')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+#%%
+import random
+import matplotlib.pyplot as plt
+
+# Function to simulate one generation of mating with advantageous trait
+def simulate_generation_advantage(population, prob_greenthumb):
+    next_generation = []
+    for _ in range(len(population) // 2):
+        parent1 = random.choice(population)
+        parent2 = random.choice(population)
+        if 'G' in parent1 or 'G' in parent2:  # If at least one parent has the greenthumb trait
+            if random.random() < prob_greenthumb:  # Both parents have 2 children
+                next_generation.extend([parent1, parent2])
+        else:  # If neither parent has the greenthumb trait
+            if random.random() < prob_greenthumb:  # Both parents have 1 child
+                next_generation.extend([parent1])
+
+    return next_generation
+
+# Initial population parameters
+initial_population_size = 1000
+prob_greenthumb = 0.1  # 10% of the population expresses greenthumb
+population = ['GG' if random.random() < prob_greenthumb else 'Gg' for _ in range(initial_population_size)]
+
+# Simulation with advantageous trait over 100 generations
+generations = 100
+expression_distribution = {'GG': 0, 'Gg': 0}
+
+for i in range(generations):
+    population = simulate_generation_advantage(population, prob_greenthumb)
+    expression_distribution['GG'] += population.count('GG')
+    expression_distribution['Gg'] += population.count('Gg')
+
+# Calculate the percentage distribution
+total_population = sum(expression_distribution.values())
+expression_distribution_percentage = {genotype: (count / total_population) * 100 for genotype, count in expression_distribution.items()}
+
+# Plotting the distribution using a histogram
+plt.bar(expression_distribution_percentage.keys(), expression_distribution_percentage.values(), color=['green', 'lightgreen'])
+plt.xlabel('Genotype')
+plt.ylabel('Percentage of Population (%)')
+plt.title('Distribution of Greenthumb Trait after 100 Generations')
+plt.show()
+
+#%%
+import random
+import matplotlib.pyplot as plt
+
+# Function to simulate one generation of mating with advantageous trait
+def simulate_generation_advantage(population, prob_greenthumb):
+    next_generation = []
+    for _ in range(len(population) // 2):
+        parent1 = random.choice(population)
+        parent2 = random.choice(population)
+        if 'G' in parent1 or 'G' in parent2:  # If at least one parent has the greenthumb trait
+            if random.random() < prob_greenthumb:  # Both parents have 2 children
+                next_generation.extend([parent1, parent2])
+        else:  # If neither parent has the greenthumb trait
+            next_generation.append('gg')  # Both parents have 1 child (gg genotype)
+    return next_generation
+
+# Initial population parameters
+initial_population_size = 1000
+prob_greenthumb = 0.1  # 10% of the population expresses greenthumb
+population = ['GG' if random.random() < prob_greenthumb else 'Gg' for _ in range(initial_population_size)]
+
+# Simulation with advantageous trait over 100 generations
+generations = 100
+expression_distribution = {'GG': 0, 'Gg': 0, 'gg': 0}
+
+for i in range(generations):
+    population = simulate_generation_advantage(population, prob_greenthumb)
+    expression_distribution['GG'] += population.count('GG')
+    expression_distribution['Gg'] += population.count('Gg')
+    expression_distribution['gg'] += population.count('gg')
+
+# Calculate the percentage distribution
+total_population = sum(expression_distribution.values())
+expression_distribution_percentage = {genotype: (count / total_population) * 100 for genotype, count in expression_distribution.items()}
+
+# Plotting the distribution using a histogram
+plt.bar(expression_distribution_percentage.keys(), expression_distribution_percentage.values(), color=['green', 'lightgreen', 'limegreen'])
+plt.xlabel('Genotype')
+plt.ylabel('Percentage of Population (%)')
+plt.title('Distribution of Greenthumb Trait after 100 Generations')
+plt.show()
