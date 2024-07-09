@@ -1,0 +1,172 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy.signal import butter, filtfilt, freqs, iirnotch
+import sounddevice as sd
+from sklearn.model_selection import GridSearchCV
+from scipy.io import wavfile
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix
+import os
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+from scipy.stats import f_oneway, kruskal
+
+# Load CSV data
+data = pd.read_csv('/Users/gizemilaydaozturk/Downloads/bird songs/birds.csv')
+
+# Initialize an empty DataFrame to store frequency domain data
+path = '/Users/gizemilaydaozturk/Downloads/bird songs/'
+df_list = []
+# Iterate over each row in the DataFrame
+for row in data.index:
+    filename = data.loc[row]['filename']
+    bird = data.loc[row]['name']
+    fs, dataset = wavfile.read(f'{path}{filename}')
+    
+    numeric_filename = ''.join(filter(str.isdigit, filename))
+    # Perform Fourier transform
+    freq = np.fft.fftfreq(len(dataset), d=1/fs)
+    power = np.abs(np.fft.fft(dataset))
+    
+    dataset = {'Name': bird,
+               'Record_number': row,
+               'filename': numeric_filename,
+               'Frequency': freq,
+               'Power': power}
+    
+    # Store the transformed data into the DataFrame
+    dataframe = pd.DataFrame(dataset)
+    df_list.append(dataframe)
+    
+concat_df = pd.concat(df_list)
+grouped_data = concat_df.groupby(['Frequency', 'Name']).mean()
+plt.figure()
+sns.lineplot(data= grouped_data, x='Frequency', y="Power", hue='Name')
+plt.title('Frequency vs Power for Bird Species')
+plt.xlabel('Frequency')
+plt.ylabel('Power')
+plt.show()
+
+# Reshape the dataframe for ML model
+pivot_data = concat_df.pivot(index = "Record_number", columns='Frequency', values='Power').fillna(0)
+
+# Select numeric columns for PCA
+#%%
+# Apply PCA
+pca = PCA(n_components=30)
+pca_result = pca.fit_transform(pivot_data)
+explained_variance = pca.explained_variance_ratio_
+    
+plt.figure()
+plt.title('Variance of Clusters') #The "elbow" in the graph is a point where adding more components provides diminishing returns in terms of explaining additional variance
+plt.xlabel('Clusters')
+plt.ylabel('Variance')
+plt.legend()
+sns.barplot(x = np.arange(len(explained_variance)),
+            y = explained_variance) 
+
+
+
+
+#%%
+
+plt.figure()
+
+sns.scatterplot(x = pca_result[:,0],
+                y = pca_result[:,1])
+plt.title('Principal Component Clusters') #The "elbow" in the graph is a point where adding more components provides diminishing returns in terms of explaining additional variance
+plt.xlabel('PC 1')
+plt.ylabel('PC 2')
+plt.legend()
+plt.grid(True)
+plt.show()  
+
+
+# fig = plt.figure(figsize=(12, 12))
+
+# ax = fig.add_subplot(projection='2d')
+# ax.scatter(pca_result[:, 0],
+#            pca_result[:, 1])
+# plt.title('Principal Component Clusters') #The "elbow" in the graph is a point where adding more components provides diminishing returns in terms of explaining additional variance
+# plt.xlabel('PC 1')
+# plt.ylabel('PC 2')
+# plt.show()  
+
+#%%
+
+X = pca_result
+y =data.name
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+#%%
+dc = {}
+dc['Birds'] = list(data['name'].drop_duplicates())
+#%%
+# Predict on the test set
+y_pred = model.predict(X_test)
+
+# Calculate accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy:", accuracy)
+
+# Generate confusion matrix
+conf_matrix = confusion_matrix(y_test, y_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels = dc['Birds'])
+plt.figure(figsize=(8, 8))
+disp.plot(ax=plt.gca(), xticks_rotation='vertical')
+plt.xlabel('Actual Values')
+plt.ylabel('Predicted Values')
+print("Confusion Matrix:")
+print(conf_matrix)
+
+#%%
+forest_params = [{'max_depth': list(range(10, 15)), 'max_features': list(range(0,14))}]
+
+clf = GridSearchCV(model, forest_params, cv = 10, scoring='accuracy')
+
+clf.fit(X_train, y_train)
+# Predict on the test set
+y_pred = clf.predict(X_test)
+
+# Calculate accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy:", accuracy)
+
+# Generate confusion matrix
+conf_matrix = confusion_matrix(y_test, y_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix)
+disp.plot()
+plt.xlabel('Actual Values')
+plt.ylabel('Predicted Values')
+print("Confusion Matrix:")
+print(conf_matrix)
+#%%
+from sklearn.model_selection import train_test_split
+from sklearn.decomposition import PCA
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix
+print(concat_df.columns)
+frequency_data_transposed = concat_df.T
+\
+x = frequency_data_transposed.values # Features
+y = frequency_data_transposed.index # Target labels
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+pca = PCA(n_components=0.95) #95% of the variance
+x_train_pca = pca.fit_transform(x_train)
+x_test_pca = pca.transform(x_test)
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(x_train_pca, y_train)
+y_pred = model.predict(x_test_pca)
+accuracy = accuracy_score(y_test, y_pred)
+print("Model Accuracy:", accuracy)
+conf_matrix = confusion_matrix(y_test, y_pred)
+print("Confusion Matrix:")
+print(conf_matrix)
