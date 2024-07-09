@@ -1,0 +1,92 @@
+@author: gizemilaydaozturk
+"""
+
+import pandas as pd 
+import seaborn as sns 
+import matplotlib.pyplot as plt
+
+def load_baby_names(begin_year = 1880, end_year = 2016):
+    columns = ('name', 'sex', 'births')
+    pieces = []
+    for year in range(begin_year, end_year + 1):
+        filename = '%s/yob%d.txt' % ('/Users/gizemilaydaozturk/Downloads/names (1)/', year)
+        piece = pd.read_csv(filename, names=columns)
+        piece['year'] = year
+        pieces.append(piece)
+        
+    return pd.concat(pieces, ignore_index=True)
+
+df = load_baby_names()
+
+print(df.head())
+
+#Start of the assignment
+# 1". Choose a baby name + make it a dataframe
+james = df[df['name']== 'James']
+
+#mean and std of the baby names
+mean_babies = james['births'].mean()
+std_babies = james['births'].std()
+
+print("Mean number of babies born with the name James:", mean_babies)
+print("Standard deviation of babies born with the name James:", std_babies)
+
+#peak of James'
+peak_year = james.loc[james['births'].idxmax()]['year']
+
+print("The year with most babaies born with the name James:", peak_year)
+james['percent'] = df.groupby('name')['births'].transform(lambda x: x / x.sum() * 100)
+df['percent'] = df.groupby('name')['births'].transform(lambda x: x / x.sum() * 100)
+sns.lineplot(x = 'year', y = 'percent', hue='sex', data = james)
+plt.figure(figsize=(12, 6))
+sns.lineplot(x='year', y='percent', hue='sex', data = james, marker='o')
+plt.title(f"The Name James Over the Year")
+plt.xlabel('Year')
+plt.ylabel('Percent of Births')
+plt.grid(True)
+plt.legend(loc='upper right')
+plt.show()
+
+# Filter data for Jennifer
+Jennifer = ['Jennifer']
+fad_df = df[df['name'].isin(Jennifer)]
+
+# Plot the popularity of Jennifer
+plt.figure(figsize=(12, 6))
+sns.lineplot(x='year', y='percent', hue='name', data=fad_df)
+plt.title("Popularity of Jennifer")
+plt.xlabel('Year')
+plt.ylabel('Percent of births')
+plt.grid(True)
+plt.legend(loc='upper right')
+plt.show()
+
+# Filter data for Lynn,
+Lynn = ['Lynn']
+Lynn_df = df[df['name'].isin(Lynn)]
+
+# Plot the popularity of Lynn
+plt.figure(figsize=(12, 6))
+sns.lineplot(x='year', y='percent', hue='sex', data=Lynn_df)
+plt.title("Change of Sex in Name Lynn")
+plt.xlabel('Year')
+plt.ylabel('Percent of births')
+plt.grid(True)
+plt.legend(loc='upper right')
+plt.show()
+
+Frozen = ['Elsa', 'Olaf', 'Anna', 'Christopher']
+
+# Filter data for movie character names
+Frozen_characters = df[df['name'].isin(Frozen)]
+
+# Plot the popularity of movie character names over the years
+plt.figure(figsize=(12, 6))
+sns.lineplot(x='year', y='percent', hue='name', data=Frozen_characters)
+plt.title("Popularity of Baby Names Inspired by Frozen")
+plt.xlabel('Year')
+plt.ylabel('Percent of births')
+plt.grid(True)
+plt.legend(loc='upper right')
+plt.show()
+
