@@ -1,0 +1,156 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy.signal import butter, filtfilt, freqs, iirnotch
+import sounddevice as sd
+from scipy.io import wavfile
+from os.path import dirname, join as pjoin
+from scipy.io import loadmat
+import scipy.io as sio
+
+sound = loadmat('/Users/gizemilaydaozturk/Downloads/corrupted_signal.mat')
+clean_signal = sound['CC_data']
+corrupted_signal1 = sound['CC_data_corrupted_A']
+corrupted_signal2 = sound['CC_data_corrupted_B']
+
+
+t = np.linspace(0., 1, 20000)
+df = pd.DataFrame({'time': t})
+df['sig1'] = corrupted_signal1
+df['sig2'] = corrupted_signal2
+df['clean'] = clean_signal
+df['combined_sig'] = df.sig1 + df.sig2 + df.clean
+ 
+plt.figure(figsize = (10,5))
+sns.lineplot(x = 'time', y = 'sig1', data =df)
+plt.title('Signal 1 over Time')
+plt.xlabel('Time')
+plt.ylabel('Amplitude')
+plt.legend()
+plt.grid(True)
+plt.show()
+plt.figure(figsize = (10,5))
+sns.lineplot(x = 'time', y = 'sig2', data =df)
+plt.title('Signal 2 over Time')
+plt.xlabel('Time')
+plt.ylabel('Amplitude')
+plt.legend()
+plt.grid(True)
+plt.show()
+plt.figure(figsize = (10,5))
+sns.lineplot(x = 'time', y = 'clean', data =df)
+plt.title('Clean Signal over Time')
+plt.xlabel('Time')
+plt.ylabel('Amplitude')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+
+plt.figure(figsize=(10, 6))
+plt.plot(t, corrupted_signal2, label='Corrupted Signal 2')
+plt.plot(t, corrupted_signal1, label='Corrupted Signal 1')
+plt.plot(t, clean_signal, label='Clean')
+plt.title('Time Domain Analysis per Signal')
+plt.xlabel('Time')
+plt.ylabel('Amplitude')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+df['moving_avg1']= df.sig1.rolling(50).median()
+df['moving_avg2']= df.sig2.rolling(50).median()
+df['moving_avg_clean']= df.clean.rolling(50).median()
+#%%
+plt.figure()
+sns.lineplot(x = 'time', y= 'sig2', data = df)
+sns.lineplot(x = 'time', y= 'moving_avg2', data = df)
+plt.title('Moving Average Signal 2')
+plt.xlabel('Time')
+plt.ylabel('Amplitude')
+plt.legend()
+plt.grid(True)
+plt.show()
+plt.figure()
+sns.lineplot(x = 'time', y= 'sig1', data = df)
+sns.lineplot(x = 'time', y= 'moving_avg1', data = df)
+plt.title('Moving Average Signal 1')
+plt.xlabel('Time')
+plt.ylabel('Amplitude')
+plt.legend()
+plt.grid(True)
+plt.show()
+plt.figure()
+sns.lineplot(x = 'time', y= 'clean', data = df)
+sns.lineplot(x = 'time', y= 'moving_avg_clean', data = df)
+plt.title('Moving Average Clean Signal')
+plt.xlabel('Time')
+plt.ylabel('Amplitude')
+plt.legend()
+plt.grid(True)
+plt.show()
+#%%
+fft_A = np.fft.fft(corrupted_signal1.ravel())
+fft_A_freq = np.fft.fftfreq(len(corrupted_signal1.ravel()))
+
+plt.figure()
+plt.semilogy(fft_A_freq, np.abs(fft_A))
+plt.title('Frequency Domain Analysis on Signal 1')
+plt.xlabel('Freq')
+plt.ylabel('Amplitude')
+plt.legend()
+plt.grid(True)
+plt.show()
+plt.show()
+
+#%%
+fft_B = np.fft.fft(corrupted_signal2.ravel())
+fft_B_freq = np.fft.fftfreq(len(corrupted_signal2.ravel()))
+
+plt.figure()
+plt.semilogy(fft_B_freq, np.abs(fft_B))
+plt.title('Frequency Domain Analysis on Signal 2')
+plt.xscale('log')
+plt.xlabel('Freq')
+plt.ylabel('Amplitude')
+plt.legend()
+plt.grid(True)
+plt.show()
+plt.show()
+
+#%%
+##notch filter to remove spike
+#sampling frequency check emqil
+#5.Custom noise filtering
+sampling_freq = 1000 # Example value, adjust based on your data
+lowcut = 50 # Low cutoff frequency (Hz)
+highcut = 200 # High cutoff frequency (Hz)
+order = 4 # Filter order
+nyquist = 0.5 * sampling_freq
+low = lowcut / nyquist
+high = highcut / nyquist
+b, a = butter(order, [low, high], btype='band')
+# apply filter to each corrupted signal
+denoised_A = filtfilt(b, a, corrupted_signal1.flatten())
+denoised_B = filtfilt(b, a, corrupted_signal2.flatten())
+# plot
+plt.figure(figsize=(10, 6))
+#Corrupted Signal A
+plt.subplot(2, 1, 1)
+plt.plot(corrupted_signal1, label='Raw Signal')
+plt.plot(denoised_A, label='Denoised Signal', linestyle='--')
+plt.title('Corrupted Signal A: Time Domain')
+plt.xlabel('Time')
+plt.ylabel('Amplitude')
+plt.legend()
+#Corrupted Signal B
+plt.subplot(2, 1, 2)
+plt.plot(corrupted_signal2, label='Raw Signal')
+plt.plot(denoised_B, label='Denoised Signal', linestyle='--')
+plt.title('Corrupted Signal B: Time Domain')
+plt.xlabel('Time')
+plt.ylabel('Amplitude')
+plt.legend()
+plt.tight_layout()
+plt.show()
