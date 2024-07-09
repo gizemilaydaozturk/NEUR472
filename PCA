@@ -1,0 +1,149 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Mar  4 22:01:02 2024
+
+@author: gizemilaydaozturk
+"""
+
+import pandas as pd
+import seaborn as sns
+from scipy.io import loadmat
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+from scipy.stats import f_oneway, kruskal
+
+data = pd.read_csv('/Users/gizemilaydaozturk/Downloads/AP_sorting.csv')
+
+sns.heatmap(data, cmap='viridis', xticklabels=10, yticklabels=20)
+
+pca = PCA(n_components=8)
+pca_result = pca.fit_transform(data)
+explained_variance = pca.explained_variance_ratio_
+    
+plt.figure()
+plt.title('Variance of Clusters') #The "elbow" in the graph is a point where adding more components provides diminishing returns in terms of explaining additional variance
+plt.xlabel('Clusters')
+plt.ylabel('Variance')
+sns.barplot(x = np.arange(len(explained_variance)),
+            y = explained_variance) 
+
+
+#%%
+pca = PCA(n_components=4)
+
+pca_result = pca.fit_transform(data)
+fig = plt.figure(figsize=(12, 12))
+
+ax = fig.add_subplot(projection='3d')
+ax.scatter(pca_result[:, 0],
+           pca_result[:, 1])
+plt.title('Principal Component Clusters') #The "elbow" in the graph is a point where adding more components provides diminishing returns in terms of explaining additional variance
+plt.xlabel('PC 1')
+plt.ylabel('PC 2')
+plt.show()  
+
+plt.figure(figsize=(6, 6))
+
+plt.scatter(pca_result[:, 0], pca_result[:, 1])
+
+plt.xlabel('Principal Component 1')
+
+plt.ylabel('Principal Component 2')
+
+plt.title('Scatter Plot of Action Potentials')
+
+plt.show()
+#%%
+sse = []
+for k in range(1, 11):
+    kmeans = KMeans(n_clusters=k, random_state=42).fit(pca_result)
+    sse.append(kmeans.inertia_)
+plt.figure(figsize=(10, 6))
+plt.plot(range(1, 11), sse, marker='o')
+plt.title('Number of Clusters and their SSE') #The "elbow" in the graph is a point where adding more components provides diminishing returns in terms of explaining additional variance
+plt.xlabel('Number of Clusters')
+plt.ylabel('SSE')
+plt.show()    
+ 
+n_clusters = 4  #4 clusters
+    
+#Apply KMeans clustering on the PCA-transformed data
+kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+kmeans.fit(pca_result)
+labels = kmeans.labels_
+    
+    # Plot the PCA results with cluster labels
+fig = plt.figure(figsize=(12, 12))
+ax = fig.add_subplot(projection='3d')
+ax.scatter(pca_result[:, 0], 
+               pca_result[:, 1], 
+               c=labels, cmap='viridis')
+plt.xlabel('Principal Component 1')
+plt.ylabel('Principal Component 2')
+plt.title('PCA of 4 Clusters')
+plt.grid(True)
+
+
+del data['Unnamed: 0']
+
+
+data_long = pd.melt(data.reset_index(), id_vars=['index'], 
+                      var_name='time', value_name='amplitude')
+    
+    # Renaming the 'index' column to 'Trial Number' for clarity
+data_long = data_long.rename(columns={'index': 'trial'})
+data_long['time'] = data_long.time.astype(float)
+    
+data_long['cluster'] = labels[data_long.trial.values]
+
+plt.figure()
+sns.lineplot(x = 'time', y = 'amplitude', hue = 'cluster', 
+                 data = data_long, errorbar = None, palette = 'Set1')
+    
+plt.title('Average Waveform of Each Cluster')
+plt.xlabel('Time Points')
+plt.ylabel('Amplitude')
+
+data_long.sort_values('cluster', inplace = True)
+a = data_long.groupby('trial').mean().reset_index()
+a['wavenum'] = a.cluster.rank(method = 'first')
+data_long = data_long.merge(a[['trial', 'wavenum']], 
+                            on = 'trial', how = 'left')
+   
+wave_pivot = data_long.pivot(columns = 'time', index = 'wavenum',
+                               values = 'amplitude')
+plt.figure()
+sns.heatmap(wave_pivot, cmap='viridis', xticklabels=10, yticklabels=20)
+
+cluster0 = data_long[data_long['cluster'] == 0]['amplitude']
+cluster1 = data_long[data_long['cluster'] == 1]['amplitude']
+cluster2 = data_long[data_long['cluster'] == 2]['amplitude']
+cluster3 = data_long[data_long['cluster'] == 3]['amplitude']
+
+ 
+
+# Perform statistical tests
+
+anova_result = f_oneway(cluster0, cluster1, cluster2, cluster3)
+kruskal_result = kruskal(cluster0, cluster1, cluster2, cluster3)
+ 
+# Print p-values
+
+print("ANOVA p-value:", anova_result.pvalue)
+
+print("Kruskal-Wallis p-value:", kruskal_result.pvalue)
+
+ 
+# Create a plot
+
+plt.figure(figsize=(8, 6))
+sns.boxplot(data=[cluster0, cluster1, cluster2, cluster3])
+plt.xlabel('Clusters')
+plt.ylabel('Peak Amplitude')
+plt.title('Peak Amplitude Across Clusters')
+plt.xticks(ticks=[0, 1, 2,3], labels=['Cluster 0', 'Cluster 1', 'Cluster 2', 'Cluster 3'])
+plt.show()
+
