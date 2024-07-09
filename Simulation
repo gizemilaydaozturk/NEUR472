@@ -1,0 +1,149 @@
+@author: gizemilaydaozturk
+"""
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Step 1: Theoretical Distribution of the sum of three 10-sided dice
+# The shape of the distribution should be approximately normal due to the Central Limit Theorem.
+#%%
+# Calculate the theoretical probabilities for each sum
+num_sides = 10
+
+# Generate all possible outcomes of rolling three dice
+possible_outcomes = np.arange(3, (num_sides * 3) + 1)
+
+# Calculate the theoretical probabilities for each sum
+probabilities = np.zeros_like(possible_outcomes, dtype=float)
+for i in range(1, num_sides + 1):
+    for j in range(1, num_sides + 1):
+        for k in range(1, num_sides + 1):
+            sum_dice = i + j + k
+            probabilities[sum_dice - 3] += 1
+
+# Normalize the probabilities to sum up to 1
+probabilities /= np.sum(probabilities)
+
+# Plot the theoretical distribution
+plt.figure(figsize=(10, 6))
+plt.bar(possible_outcomes, probabilities, color='skyblue', edgecolor='black', alpha=0.7)
+plt.title('Theoretical Distribution of Sum of Three 10-sided Dice')
+plt.xlabel('Sum of Three Dice')
+plt.ylabel('Probability')
+plt.xticks(np.arange(3, (num_sides * 3) + 1))
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.show()
+#%%
+# Step 2: Simulation of rolling three dice
+def roll_dice(num_rolls):
+    return np.random.randint(1, 11, size=(num_rolls, 3)).sum(axis=1)
+
+# Simulate rolling three dice for different numbers of rolls
+num_rolls_list = [10, 100, 1000]
+plt.figure(figsize=(12, 6))
+plt.title('Distribution of 3 Dice') #The "elbow" in the graph is a point where adding more components provides diminishing returns in terms of explaining additional variance
+plt.xlabel('Number of Clusters')
+plt.ylabel('SSE')
+plt.show()   
+
+
+for i, num_rolls in enumerate(num_rolls_list):
+    plt.subplot(1, len(num_rolls_list), i+1)
+    plt.hist(roll_dice(num_rolls), bins=np.arange(2, 31)-0.5, edgecolor='black', alpha=0.7)
+    plt.title(f'{num_rolls} Rolls')
+    plt.xlabel('Sum of Three Dice')
+    plt.ylabel('Frequency')
+plt.tight_layout()
+plt.show()
+
+#%%
+# Step 3: Determine the number of rolls needed to achieve a sum of 23 at least 10 times
+def simulate_until_target(target_sum, min_occurrences):
+    rolls_needed = []
+    occurrences = 0
+    while occurrences < min_occurrences:
+        rolls_needed.append(np.random.randint(1, 11, size=3).sum())
+        occurrences = np.sum(np.array(rolls_needed) == target_sum)
+    return len(rolls_needed)
+
+# Simulate multiple times to get a distribution of the number of rolls needed
+num_simulations = 1000
+rolls_required = [simulate_until_target(23, 10) for _ in range(num_simulations)]
+
+# Plot the distribution of the number of rolls required
+plt.figure(figsize=(8, 6))
+plt.hist(rolls_required, bins=np.arange(1, max(rolls_required)+1)-0.5, edgecolor='black', alpha=0.7)
+plt.title('Number of Rolls Required for Sum of 23 (10 Occurrences)')
+plt.xlabel('Number of Rolls')
+plt.ylabel('Frequency')
+plt.show()
+
+#%%
+# Function to simulate one generation of mating
+def simulate_generation(population, prob_greenthumb):
+    next_generation = []
+    for _ in range(len(population) // 2):
+        parent1 = random.choice(population)
+        parent2 = random.choice(population)
+        child1 = parent1 if random.random() < prob_greenthumb else parent2
+        child2 = parent1 if random.random() < prob_greenthumb else parent2
+        next_generation.extend([child1, child2])
+    return next_generation
+
+# Initial population parameters
+initial_population_size = 800000
+prob_greenthumb = 0.1  # 10% of the population expresses greenthumb
+population = ['GG' if random.random() < prob_greenthumb else 'Gg' for _ in range(initial_population_size)]
+
+# Simulation over 100 generations
+generations = 100
+for i in range(generations):
+    population = simulate_generation(population, prob_greenthumb)
+    prob_greenthumb = sum(1 for ind in population if 'G' in ind) / len(population)
+
+print("Percentage of population expressing greenthumb after 100 generations:", prob_greenthumb * 100)
+
+
+#%%
+
+generations = 1000
+for i in range(generations):
+    population = simulate_generation(population, prob_greenthumb)
+    prob_greenthumb = sum(1 for ind in population if 'G' in ind) / len(population)
+
+print("Percentage of population expressing greenthumb after 1000 generations:", prob_greenthumb * 100)
+
+#%%
+# Function to simulate one generation of mating with advantageous trait
+def simulate_generation_advantage(population, prob_greenthumb):
+    next_generation = []
+    for ind in population:
+        if 'G' in ind:  # If individual has the greenthumb trait
+            if random.random() < prob_greenthumb:  # Both parents have 2 children
+                next_generation.extend([ind, ind])
+        else:  # If individual does not have the greenthumb trait
+            if random.random() < prob_greenthumb:  # Both parents have 1 child
+                next_generation.append(ind)
+    return next_generation
+
+# Initial population parameters
+initial_population_size = 1000
+prob_greenthumb = 0.1  # 10% of the population expresses greenthumb
+population = ['GG' if random.random() < prob_greenthumb else 'Gg' for _ in range(initial_population_size)]
+
+
+# Simulation with advantageous trait over 100 generations
+generations = 100
+expression_over_generations = []
+for i in range(generations):
+    population = simulate_generation_advantage(population, prob_greenthumb)
+    prob_greenthumb = sum(1 for ind in population if 'G' in ind) / len(population)
+    expression_over_generations.append(prob_greenthumb * 100)
+#%%
+# Plotting
+plt.plot(range(1, generations + 1), expression_over_generations, marker='o')
+plt.xlabel('Generations')
+plt.ylabel('Percentage of Population with Greenthumb (%)')
+plt.title('Expression of Greenthumb Trait over Generations')
+plt.grid(True)
+plt.show()
